@@ -1,17 +1,25 @@
 package main
 
-import "fmt"
-
 import (
-	"encoding/json" //for json parsing
-	"fmt"           //for formatting strings
-	"github.com/gorilla/mux"
-	"log"       //for logging
-	"math/rand" //for random number generation
-	"net/http"  //for server
+	"encoding/json"
+	"fmt"
+	"log"
+	"math/rand"
+	"net/http"
 	"os"
-	"strconv" //for string conversion
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
+
+//for json parsing
+//for formatting strings
+
+//for logging
+//for random number generation
+//for server
+
+//for string conversion
 
 // I am trying to learn go so I am not going to use  any external database
 type Movie struct {
@@ -27,6 +35,63 @@ type Director struct {
 }
 
 var movies []Movie //our mock database
+
+func getMovies(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("content-Type", "application/json")
+	json.NewEncoder(res).Encode(movies)
+}
+
+func deleteMovie(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(req)
+
+	for index, item := range movies {
+		if item.ID == params["id"] {
+			movies = append(movies[:index], movies[index+1:]...)
+			break
+		}
+	}
+	json.NewEncoder(res).Encode(movies)
+}
+
+func getMovie(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(req)
+	for _, item := range movies {
+		if item.ID == params["id"] {
+			json.NewEncoder(res).Encode(item)
+			return
+		}
+	}
+}
+
+func createMovie(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "application/json")
+	var newMovie Movie
+	_ = json.NewDecoder(req.Body).Decode(&newMovie)
+	newMovie.ID = strconv.Itoa(rand.Intn(1000000))
+	movies = append(movies, newMovie)
+	json.NewEncoder(res).Encode(newMovie)
+
+}
+
+func updateMovie(res http.ResponseWriter, req *http.Request) {
+	res.Header().Set("Content-Type", "applications/json")
+
+	params := mux.Vars(req)
+	for index, item := range movies {
+		if item.ID == params["id"] {
+			movies = append(movies[:index], movies[index+1:]...)
+			var editedMovie Movie
+			_ = json.NewDecoder(req.Body).Decode(&editedMovie)
+			editedMovie.ID = params["id"]
+			movies = append(movies, editedMovie)
+			json.NewEncoder(res).Encode(editedMovie)
+			return
+
+		}
+	}
+}
 
 func main() {
 
@@ -51,9 +116,9 @@ func main() {
 	router.HandleFunc("/movies", getMovies).Methods("GET")
 	router.HandleFunc("/movies/{id}", getMovie).Methods("GET")
 	router.HandleFunc("/movies", createMovie).Methods("POST")
-	router.HandleFunc("/movies/{id]", updateMovies).Methods("PUT")
+	router.HandleFunc("/movies/{id]", updateMovie).Methods("PUT")
 	router.HandleFunc("movie/{id}", deleteMovie).Methods("DELETE")
-	fmt.Println("Starting Server at port 8000\n")
+	fmt.Println("Starting Server at port 8000")
 	log.Fatal(http.ListenAndServe(":8000", router))
 
 	os.Exit(0)
